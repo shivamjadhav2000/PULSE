@@ -65,4 +65,4 @@ const UsersSchema = new Schema({
         default: Date.now
     }
 })
-mongoose.model('MessageCreds', messageCredSchema);
+mongoose.model('UsersSchema', UsersSchema);
