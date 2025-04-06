@@ -21,7 +21,9 @@ const severityTypeEnum = {
 }
 
     router.post('/create',
-        check('crisisType').exists().withMessage('crisisType is required'),
+        check('crisisType').exists().withMessage('crisisType is required')
+            .isLength({ min: 4 }).withMessage('crisisType must be at least 4 characters long'),
+
             check('location').exists().withMessage('location is required')
             .isObject().withMessage('location must be an object'),
           
@@ -54,7 +56,12 @@ const severityTypeEnum = {
                 console.log('Received data:', crisisData); // Log the received data
                 const crisis = new Crisis(crisisData);
                 await crisis.save();
-                return responseHandler.handleSuccessResponse(res, 201, 'Crisis created successfully', crisis);
+                const io = req.app.get('io'); // 🧠 Get io from app context
+                io.emit('crisis_alert', {
+                    message: '🚨'+crisisType
+                });
+                
+                return responseHandler.handleSuccessResponse(res,'Crisis created successfully', crisis);
             } catch (error) {
                 console.error('Error creating crisis:', error); // Log the error for debugging
                 return responseHandler.handleErrorResponse(res, 500, 'Error creating crisis', error);

@@ -1,10 +1,15 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { login } from "../api/api"; // Adjust the import path as necessary
 import { useNavigate } from "react-router-dom"; // Import the navigate hook
 
-const Login = ({ handleLogin }) => { // Fixed the typo here
+const Login = ({ handleLogin ,user}) => { // Fixed the typo here
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard"); // Redirect to dashboard if user is already logged in
+    }
+  }, [user]); // Added user as a dependency to avoid infinite loop
   const navigate = useNavigate(); // Use the navigate hook for routing
 
   const formik = useFormik({

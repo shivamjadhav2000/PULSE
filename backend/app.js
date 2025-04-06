@@ -35,16 +35,23 @@ const io = new Server(server, {
     }
 });
 
+
+// Make `io` available globally across your app
+app.set('io', io); // 💡 This line is important
+
 io.on('connection', (socket) => {
-    console.log('a user connected');
+    console.log('A user connected');
+
     socket.on('disconnect', () => {
-        console.log('user disconnected');
+        console.log('User disconnected');
     });
+
     socket.on('message', (message) => {
-        console.log(message);
-        io.emit('message', message);
+        console.log('Message received:', message);
+        io.emit('message', message); // broadcast to all clients
     });
 });
+
 
 // Start the server after the database connection
 dbConnect().then(() => {
