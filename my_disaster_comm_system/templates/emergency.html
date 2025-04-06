@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Emergency Alert Form</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px;
+            background-color: #f2f2f2;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #d32f2f;
+            text-align: center;
+        }
+        .field { 
+            margin-bottom: 15px; 
+        }
+        label { 
+            display: block; 
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], 
+        input[type="number"], 
+        select, 
+        textarea { 
+            width: 100%; 
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        input[type="checkbox"] {
+            width: auto;
+        }
+        button {
+            background-color: #d32f2f;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #b71c1c;
+        }
+        .status {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        .pending {
+            background-color: #fcf8e3;
+            color: #8a6d3b;
+        }
+        #packet-details {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #e8eaf6;
+            border-radius: 4px;
+        }
+        #submission-warning {
+            background-color: #fff3e0;
+            color: #e65100;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Emergency Alert Form</h1>
+        
+        <form id="emergencyForm" onsubmit="submitEmergency(event)">
+            <div class="field">
+                <label for="userId">User ID (leave blank for new user):</label>
+                <input type="text" id="userId" placeholder="Leave blank for new user">
+            </div>
+            
+            <div class="field">
+                <label for="lat">Latitude:</label>
+                <input type="text" id="lat" required>
+            </div>
+            
+            <div class="field">
+                <label for="lng">Longitude:</label>
+                <input type="text" id="lng" required>
+            </div>
+            
+            <div class="field">
+                <label for="severity">Severity:</label>
+                <select id="severity">
+                    <option value="0">Low</option>
+                    <option value="1">Medium</option>
+                    <option value="2">High</option>
+                    <option value="3">Critical</option>
+                </select>
+            </div>
+            
+            <div class="field">
+                <label for="disasterType">Disaster Type:</label>
+                <select id="disasterType">
+                    <option value="0">None</option>
+                    <option value="1">Flood</option>
+                    <option value="2">Tornado</option>
+                    <option value="3">Hurricane</option>
+                    <option value="4">Earthquake</option>
+                    <option value="5">Wildfire</option>
+                    <option value="6">Other</option>
+                </select>
+            </div>
+            
+            <div class="field">
+                <label for="peopleAffected">People Affected (Estimate):</label>
+                <input type="number" id="peopleAffected" min="0" value="0">
+            </div>
+            
+            <div class="field">
+                <label for="immediateResponse">Immediate Response Needed:</label>
+                <input type="checkbox" id="immediateResponse">
+            </div>
+            
+            <div class="field">
+                <label for="crisisId">Crisis ID:</label>
+                <input type="text" id="crisisId" placeholder="Enter unique identifier for this crisis">
+            </div>
+            
+            <div class="field">
+                <label for="message">Additional Details:</label>
+                <textarea id="message" rows="4" placeholder="Describe the emergency situation"></textarea>
+            </div>
+            
+            <button type="submit">Submit Emergency Alert</button>
+            <button type="button" onclick="window.location.href='/'">Return to Home</button>
+        </form>
+        
+        <!-- Status and results display -->
+        <div id="submission-status" class="status" style="display: none;"></div>
+        <div id="submission-warning" style="display: none;"></div>
+        <div id="packet-details" style="display: none;">
+            <h3>Transmission Details</h3>
+            <ul>
+                <li>Original JSON size: <span id="original-size"></span> bytes</li>
+                <li>Binary packet size: <span id="binary-size"></span> bytes</li>
+                <li>Transmitted size: <span id="transmitted-size"></span> bytes</li>
+                <li>Data reduction: <span id="size-reduction"></span></li>
+            </ul>
+            <p>API Response: <span id="api-response"></span></p>
+        </div>
+    </div>
+
+    <script>
+        // Get the user's location when the page loads
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition, handleLocationError);
+            } else {
+                console.error("Geolocation is not supported by this browser.");
+                document.getElementById("lat").value = 0;
+                document.getElementById("lng").value = 0;
+            }
+        }
+        
+        function showPosition(position) {
+            document.getElementById("lat").value = position.coords.latitude;
+            document.getElementById("lng").value = position.coords.longitude;
+        }
+        
+        function handleLocationError(error) {
+            console.error("Geolocation error: " + error.message);
+            document.getElementById("lat").value = 0;
+            document.getElementById("lng").value = 0;
+        }
+        
+        // Check for previously stored userId
+        function checkStoredUserId() {
+            const storedUserId = localStorage.getItem("userId");
+            if (storedUserId && storedUserId !== "null") {
+                document.getElementById("userId").value = storedUserId;
+            }
+        }
+        
+        // Check for crisisId in URL parameters
+        function checkCrisisId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const crisisParam = urlParams.get('crisis');
+            if (crisisParam) {
+                document.getElementById("crisisId").value = crisisParam;
+            }
+        }
+        
+        async function submitEmergency(event) {
+            event.preventDefault();
+            
+            // Get location if not already set
+            if (!document.getElementById("lat").value) {
+                getLocation();
+            }
+            
+            // Prepare data payload
+            let data = {
+                alertType: "emergency",
+                userId: document.getElementById("userId").value || null,
+                lat: parseFloat(document.getElementById("lat").value),
+                lng: parseFloat(document.getElementById("lng").value),
+                severity: parseInt(document.getElementById("severity").value),
+                disasterType: parseInt(document.getElementById("disasterType").value),
+                peopleAffected: parseInt(document.getElementById("peopleAffected").value || "0"),
+                immediateResponse: document.getElementById("immediateResponse").checked ? 1 : 0,
+                crisisId: document.getElementById("crisisId").value || null,
+                message: document.getElementById("message").value
+            };
+            
+            // Display submission status
+            const statusDiv = document.getElementById("submission-status");
+            statusDiv.textContent = "Submitting...";
+            statusDiv.className = "status pending";
+            statusDiv.style.display = "block";
+            
+            try {
+                const response = await fetch("/submit", {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Network error: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.status === "success" || result.status === "partial_success") {
+                    // Update status
+                    statusDiv.textContent = "Alert submitted successfully!";
+                    statusDiv.className = "status success";
+                    
+                    // Show packet details
+                    document.getElementById("original-size").textContent = result.original_size;
+                    document.getElementById("binary-size").textContent = result.binary_size;
+                    document.getElementById("transmitted-size").textContent = result.transmitted_size;
+                    document.getElementById("size-reduction").textContent = result.size_reduction;
+                    document.getElementById("api-response").textContent = result.api_response;
+                    document.getElementById("packet-details").style.display = "block";
+                    
+                    // Store the returned userId in localStorage for future use
+                    if (result.userId && result.userId !== "null") {
+                        localStorage.setItem("userId", result.userId);
+                        document.getElementById("userId").value = result.userId;
+                    }
+                    
+                    // If we get a crisis ID back, update the field
+                    if (result.crisisId && result.crisisId !== "null") {
+                        document.getElementById("crisisId").value = result.crisisId;
+                    }
+                    
+                    // Show warning if it was a partial success
+                    if (result.status === "partial_success") {
+                        document.getElementById("submission-warning").textContent = result.message;
+                        document.getElementById("submission-warning").style.display = "block";
+                    } else {
+                        document.getElementById("submission-warning").style.display = "none";
+                    }
+                } else {
+                    // Show error
+                    statusDiv.textContent = "Error: " + (result.message || "Unknown error");
+                    statusDiv.className = "status error";
+                }
+            } catch (error) {
+                console.error("Error submitting form:", error);
+                statusDiv.textContent = "Error: " + error.message;
+                statusDiv.className = "status error";
+            }
+        }
+        
+        // Initialize form when page loads
+        window.onload = function() {
+            getLocation();
+            checkStoredUserId();
+            checkCrisisId();
+            
+            // Hide packet details initially
+            document.getElementById("packet-details").style.display = "none";
+            document.getElementById("submission-warning").style.display = "none";
+        };
+    </script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <button id="enableAlertsBtn">🔊 Enable Audio Alerts</button>
+
+  <!-- Audio element -->
+  <audio id="alertSound" src="https://cdn.uppbeat.io/audio-files/917eeef23562404c6620f249596cd4e7/82fdd510eb74db31d8192be992f35033/5032726f7339de39f729eb546e1a92ed/STREAMING-bell-digital-sparkle-swoop-1-00-01.mp3" preload="auto"></audio>
+
+  <footer>&copy; 2025 Team -2 AMBER ALERT</footer>
+
+  <script>
+    // Function to enable audio playback (user must click the button)
+    document.getElementById("enableAlertsBtn").addEventListener("click", function () {
+      var sound = document.getElementById("alertSound");
+      sound.play().then(() => {
+        sound.pause();
+        console.log("Audio alerts enabled.");
+      }).catch((error) => {
+        console.error("Error enabling audio alerts:", error);
+      });
+    });
+
+    // Connect to the Socket.IO server
+    var socket = io("http://192.168.137.1:8000");
+
+    socket.on('connect', () => {
+      console.log("PULSE: Connected to backend");
+    });
+
+    socket.on('crisis_alert', (data) => {
+      console.log("PULSE: Crisis alert received:", data);
+      var sound = document.getElementById("alertSound");
+      if (sound) {
+        sound.play().catch(error => {
+          console.error("Error playing sound:", error);
+        });
+      }
+      alert("🚨 PULSE Alert: " + data.message);
+    });
+
+    socket.on('disconnect', () => {
+      console.log("PULSE: Disconnected from backend");
+    });
+
+    socket.on('error', (error) => {
+      console.error("PULSE: Socket error:", error);
+    });
+  </script>
+</body>
+</html>
