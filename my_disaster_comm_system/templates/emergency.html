@@ -306,13 +306,17 @@
         };
     </script>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <audio id="alertSound" src="https://cdn.uppbeat.io/audio-files/917eeef23562404c6620f249596cd4e7/82fdd510eb74db31d8192be992f35033/5032726f7339de39f729eb546e1a92ed/STREAMING-bell-digital-sparkle-swoop-1-00-01.mp3" preload="auto"></audio>
-  
+    <button id="enableAlertsBtn">🔊 Enable Audio Alerts</button>
+
+  <!-- Audio element -->
+  <audio id="alertSound" src="https://cdn.uppbeat.io/audio-files/917eeef23562404c6620f249596cd4e7/82fdd510eb74db31d8192be992f35033/5032726f7339de39f729eb546e1a92ed/STREAMING-bell-digital-sparkle-swoop-1-00-01.mp3" preload="auto"></audio>
+
+  <footer>&copy; 2025 Team -2 AMBER ALERT</footer>
+
   <script>
     // Function to enable audio playback (user must click the button)
-    document.getElementById("enableAlertsBtn").addEventListener("click", function() {
+    document.getElementById("enableAlertsBtn").addEventListener("click", function () {
       var sound = document.getElementById("alertSound");
-      // Attempt to play and immediately pause to satisfy autoplay restrictions.
       sound.play().then(() => {
         sound.pause();
         console.log("Audio alerts enabled.");
@@ -320,15 +324,14 @@
         console.error("Error enabling audio alerts:", error);
       });
     });
-    
-    // Connect to the Socket.IO server.
+
+    // Connect to the Socket.IO server
     var socket = io("http://192.168.137.1:8000");
-    
+
     socket.on('connect', () => {
       console.log("PULSE: Connected to backend");
     });
-    
-    // Listen for crisis_alert events
+
     socket.on('crisis_alert', (data) => {
       console.log("PULSE: Crisis alert received:", data);
       var sound = document.getElementById("alertSound");
@@ -337,13 +340,13 @@
           console.error("Error playing sound:", error);
         });
       }
-      alert("PULSE Alert: " + data.message);
+      alert("🚨 PULSE Alert: " + data.message);
     });
-    
+
     socket.on('disconnect', () => {
       console.log("PULSE: Disconnected from backend");
     });
-    
+
     socket.on('error', (error) => {
       console.error("PULSE: Socket error:", error);
     });
