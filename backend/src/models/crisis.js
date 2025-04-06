@@ -23,6 +23,7 @@ const CrisisSchema = new Schema({
     },
     datetime: {
         type: Date,
+        default: Date.now,
         required: true
     },
     location: {

@@ -24,7 +24,7 @@ const StaffSchema = new Schema({
         default: StaffTypeIdEnum.none,
         required: true
     },
-    departmentType:{
+    departmentName:{
         type: String,
         required: true
     },

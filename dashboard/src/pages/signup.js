@@ -1,152 +1,101 @@
-import React, { useState } from "react";
+import React from "react";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import { signup } from "../api/api";
 
 const SignupPage = () => {
-  const [formData, setFormData] = useState({
-    name: "",
-    age: "",
-    gender: "",
-    department: "",
-    experience: "",
-    username: "",
-    password: "",
-    confirmPassword: "",
+  const formik = useFormik({
+    initialValues: {
+      name: "",
+      age: "",
+      gender: "",
+      departmentName: "",
+      experience: "",
+      userName: "",
+      password: "",
+      confirmPassword: "",
+    },
+    validationSchema: Yup.object({
+      name: Yup.string().required("Required"),
+      age: Yup.number().required("Required").min(1, "Invalid age"),
+      gender: Yup.string().required("Required"),
+      departmentName: Yup.string().required("Required"),
+      experience: Yup.number().required("Required").min(0, "Invalid experience"),
+      userName: Yup.string().required("Required"),
+      password: Yup.string().required("Required").min(6, "Min 6 characters"),
+      confirmPassword: Yup.string()
+        .oneOf([Yup.ref("password"), null], "Passwords must match")
+        .required("Required"),
+    }),
+    onSubmit: async (values) => {
+      console.log("Submitted:", values);
+      // You can call signup API here:
+      const res=await signup(values);
+      console.log("Response:", res);
+      if (res.status===200){
+        alert(res.message || "Signup successful")
+        window.location.href = "/login";
+        //reset form
+        formik.resetForm();
+      }
+      else{
+        // 
+        alert(res.message || "Signup failed")
+      }
+      
+      // redirect to login page or show success message
+      // For example, you can use react-router to navigate to the login page:
+    },
   });
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match");
-      return;
-    }
-
-    console.log("Submitted:", formData);
-    // You can send formData to backend here
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <form
-        onSubmit={handleSubmit}
+        onSubmit={formik.handleSubmit}
         className="bg-white shadow-lg rounded-lg p-8 w-full max-w-md"
       >
         <h2 className="text-2xl font-bold mb-6 text-primary">Signup</h2>
 
         {/* Name */}
-        <div className="mb-4">
-          <label className="block text-sm mb-1">Name</label>
-          <input
-            type="text"
-            name="name"
-            required
-            value={formData.name}
-            onChange={handleChange}
-            className="w-full border border-border rounded px-3 py-2"
-          />
-        </div>
+        <InputField label="Name" name="name" formik={formik} />
 
         {/* Age */}
-        <div className="mb-4">
-          <label className="block text-sm mb-1">Age</label>
-          <input
-            type="number"
-            name="age"
-            required
-            value={formData.age}
-            onChange={handleChange}
-            className="w-full border border-border rounded px-3 py-2"
-          />
-        </div>
+        <InputField label="Age" name="age" type="number" formik={formik} />
 
         {/* Gender */}
         <div className="mb-4">
           <label className="block text-sm mb-1">Gender</label>
           <select
             name="gender"
-            required
-            value={formData.gender}
-            onChange={handleChange}
+            value={formik.values.gender}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
             className="w-full border border-border rounded px-3 py-2"
           >
             <option value="">Select Gender</option>
-            <option>Male</option>
-            <option>Female</option>
-            <option>Other</option>
+            <option value={'male'}>Male</option>
+            <option value={'female'}>Female</option>
+            <option value={'other'}>Other</option>
           </select>
+          {formik.touched.gender && formik.errors.gender && (
+            <div className="text-red-500 text-sm mt-1">{formik.errors.gender}</div>
+          )}
         </div>
 
-        {/* Department */}
-        <div className="mb-4">
-          <label className="block text-sm mb-1">Department Name</label>
-          <input
-            type="text"
-            name="department"
-            required
-            value={formData.department}
-            onChange={handleChange}
-            className="w-full border border-border rounded px-3 py-2"
-          />
-        </div>
+        {/* DepartmentName */}
+        <InputField label="Department Name" name="departmentName" formik={formik} />
 
         {/* Experience */}
-        <div className="mb-4">
-          <label className="block text-sm mb-1">Experience (Years)</label>
-          <input
-            type="number"
-            name="experience"
-            required
-            value={formData.experience}
-            onChange={handleChange}
-            className="w-full border border-border rounded px-3 py-2"
-          />
-        </div>
+        <InputField label="Experience (Years)" name="experience" type="number" formik={formik} />
 
         {/* Username */}
-        <div className="mb-4">
-          <label className="block text-sm mb-1">Username</label>
-          <input
-            type="text"
-            name="username"
-            required
-            value={formData.username}
-            onChange={handleChange}
-            className="w-full border border-border rounded px-3 py-2"
-          />
-        </div>
+        <InputField label="Username" name="userName" formik={formik} />
 
         {/* Password */}
-        <div className="mb-4">
-          <label className="block text-sm mb-1">Password</label>
-          <input
-            type="password"
-            name="password"
-            required
-            value={formData.password}
-            onChange={handleChange}
-            className="w-full border border-border rounded px-3 py-2"
-          />
-        </div>
+        <InputField label="Password" name="password" type="password" formik={formik} />
 
         {/* Confirm Password */}
-        <div className="mb-6">
-          <label className="block text-sm mb-1">Confirm Password</label>
-          <input
-            type="password"
-            name="confirmPassword"
-            required
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            className="w-full border border-border rounded px-3 py-2"
-          />
-        </div>
+        <InputField label="Confirm Password" name="confirmPassword" type="password" formik={formik} />
 
         <button
           type="submit"
@@ -158,5 +107,22 @@ const SignupPage = () => {
     </div>
   );
 };
+
+const InputField = ({ label, name, type = "text", formik }) => (
+  <div className="mb-4">
+    <label className="block text-sm mb-1">{label}</label>
+    <input
+      type={type}
+      name={name}
+      value={formik.values[name]}
+      onChange={formik.handleChange}
+      onBlur={formik.handleBlur}
+      className="w-full border border-border rounded px-3 py-2"
+    />
+    {formik.touched[name] && formik.errors[name] && (
+      <div className="text-red-500 text-sm mt-1">{formik.errors[name]}</div>
+    )}
+  </div>
+);
 
 export default SignupPage;

@@ -65,4 +65,4 @@ const UsersSchema = new Schema({
         default: Date.now
     }
 })
-mongoose.model('UsersSchema', UsersSchema);
+mongoose.model('Users', UsersSchema);

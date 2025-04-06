@@ -1,22 +1,57 @@
-import './theme.css';
-import {BrowserRouter as Router,Routes,Route} from 'react-router-dom'
-import LoginPage from './pages/login';
-import SignupPage from './pages/signup';
+import React, { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import LoginPage from './pages/Login'
+import SignupPage from './pages/Signup';
+import Dashboard from './pages/Dashboard';
+import NotFound from './components/NotFound';
+
+
+// Mock Admin component (another protected route)
+const Admin = () => {
+  return (
+    <div>
+      <h1>Admin Area</h1>
+      <p>Only authorized users can see this.</p>
+    </div>
+  );
+};
 
 function App() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('userObj');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+    setLoading(false);
+  }, []);
+
+  const handleLogin = (loggedInUser) => {
+    console.log("Logged in user:", loggedInUser);
+    setUser(loggedInUser);
+  };
+
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<h1 className="text-3xl font-bold underline">Hello world!</h1>} />
-        <Route path='/login' element={<LoginPage/>} />
-        <Route path='/signup' element={<SignupPage/>} />
-        
-      </Routes>
-      <footer className="bg-gray-800 text-white p-4">
-        <p className="text-center">Footer Content</p>
-      </footer>
       
-    
+        <Routes>
+          <Route path="/" element={<p>Public Home Page</p>} />
+          <Route path="/login" element={<LoginPage handleLogin={handleLogin} user={user} />} />
+          <Route path="/signup" element={<SignupPage />} />
+
+          {/* Protected Routes */}
+          <Route path='/dashboard/*' element={<Dashboard/>} />
+
+          {/* Fallback route */}
+          <Route path="*" element={<NotFound/>} />
+        </Routes>
     </Router>
   );
 }

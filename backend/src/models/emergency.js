@@ -34,6 +34,7 @@ const EmergencySchema = new Schema({
     },
     dateTime: {
         type: Date,
+        default: Date.now,
         required: true
     },
     disasterType: {
@@ -54,4 +55,4 @@ const EmergencySchema = new Schema({
     }
 
     })
-const Emergency = mongoose.model('Emergency', EmergencySchema)
+mongoose.model('Emergency', EmergencySchema)

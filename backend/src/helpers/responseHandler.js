@@ -2,7 +2,7 @@ exports.handleErrorResponse = (res, errorCode, errorMessage) => {
     //Logger to log this response
     var errorObject = {
       success: false,
-      message: errorMessage,
+      errors: errorMessage,
       status: errorCode
     }
     res.json(errorObject)

@@ -1,12 +1,6 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
-const medicalIssueEnum = {
-    'none': 0,
-    'Injury': 1,
-    'Illness': 2,
-    'Disability': 3,
-    'Other': 4
-}
+
 const disasterTypeEnum = {
     'none': 0,
     'Flood': 1,
