@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Emergency Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body, html { height: 100%; margin: 0; padding: 0; }
+    /* Added border to the map container */
+    #map { height: 100%; border: 2px solid #ccc; }
+    .back-button {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      background: white;
+      padding: 5px 10px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+    .loader {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1001;
+      background: rgba(255,255,255,0.8);
+      padding: 10px 20px;
+      border-radius: 4px;
+      font-family: Arial, sans-serif;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <button class="back-button" onclick="window.location.href='/'">Back to Home</button>
+  <div id="loader" class="loader">Loading POIs...</div>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    // Initialize the map with a temporary center; it will be updated.
+    var map = L.map('map').setView([0, 0], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+    
+    // Define Denton, TX coordinates (approximate)
+    var dentonLat = 33.214, dentonLng = -97.133;
+    // Threshold distance in km; if user is farther than this from Denton, center on Denton.
+    var thresholdKm = 80;
+    
+    // Haversine formula to compute the distance in km between two lat/lon pairs.
+    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+      var R = 6371; // Radius of the earth in km
+      var dLat = deg2rad(lat2 - lat1);
+      var dLon = deg2rad(lon2 - lon1);
+      var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+      var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      var d = R * c;
+      return d;
+    }
+    function deg2rad(deg) {
+      return deg * (Math.PI / 180);
+    }
+    
+    // Create custom icons for shelters and emergency POIs.
+    var defaultIcon = L.icon({
+      iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34]
+    });
+    var shelterIcon = L.icon({
+      iconUrl: 'https://chart.googleapis.com/chart?chst=d_map_pin_letter&chld=S|00FF00|000000',
+      iconSize: [21, 34],
+      iconAnchor: [10, 34],
+      popupAnchor: [1, -34]
+    });
+    var emergencyIcon = L.icon({
+      iconUrl: 'https://chart.googleapis.com/chart?chst=d_map_pin_letter&chld=E|FFA500|000000',
+      iconSize: [21, 34],
+      iconAnchor: [10, 34],
+      popupAnchor: [1, -34]
+    });
+    
+    // Function to query the Overpass API for nearby POIs.
+    function fetchPOIs(lat, lng) {
+      document.getElementById('loader').style.display = 'block';
+      var radius = 2000; // Search radius in meters
+      var query = `
+        [out:json];
+        (
+          node(around:${radius},${lat},${lng})["amenity"="hospital"];
+          node(around:${radius},${lat},${lng})["amenity"="shelter"];
+          node(around:${radius},${lat},${lng})["emergency"="yes"];
+        );
+        out body;
+      `;
+      var url = "https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(query);
+      
+      fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('loader').style.display = 'none';
+          if (data.elements) {
+            data.elements.forEach(function (element) {
+              if (element.lat && element.lon) {
+                // Determine which icon to use based on tags.
+                var markerOptions = { icon: defaultIcon };
+                if (element.tags.amenity === "shelter") {
+                  markerOptions.icon = shelterIcon;
+                } else if (element.tags.emergency === "yes") {
+                  markerOptions.icon = emergencyIcon;
+                }
+                var marker = L.marker([element.lat, element.lon], markerOptions).addTo(map);
+                var popupContent = `<strong>${element.tags.name || "POI"}</strong><br>`;
+                for (var key in element.tags) {
+                  popupContent += key + ": " + element.tags[key] + "<br>";
+                }
+                marker.bindPopup(popupContent);
+              }
+            });
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching POIs:", error);
+          document.getElementById('loader').style.display = 'none';
+        });
+    }
+    
+    // Use browser geolocation.
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(function(position) {
+        var userLat = position.coords.latitude;
+        var userLng = position.coords.longitude;
+        console.log("User Latitude:", userLat, "User Longitude:", userLng);
+        
+        // Compute distance from user's location to Denton.
+        var distance = getDistanceFromLatLonInKm(userLat, userLng, dentonLat, dentonLng);
+        console.log("Distance from Denton (km):", distance.toFixed(2));
+        
+        // If far from Denton, center on Denton.
+        if (distance > thresholdKm) {
+          console.log("User is far from Denton. Centering map on Denton.");
+          map.setView([dentonLat, dentonLng], 13);
+          L.marker([dentonLat, dentonLng]).addTo(map)
+            .bindPopup('Denton, TX')
+            .openPopup();
+          fetchPOIs(dentonLat, dentonLng);
+        } else {
+          // Otherwise, center on the user's location.
+          map.setView([userLat, userLng], 13);
+          L.marker([userLat, userLng]).addTo(map)
+            .bindPopup('Your Location')
+            .openPopup();
+          fetchPOIs(userLat, userLng);
+        }
+      }, function(error) {
+        console.error("Geolocation error:", error);
+        // Fallback to Denton.
+        map.setView([dentonLat, dentonLng], 13);
+        fetchPOIs(dentonLat, dentonLng);
+      });
+    } else {
+      console.error("Geolocation is not supported by this browser.");
+      map.setView([dentonLat, dentonLng], 13);
+      fetchPOIs(dentonLat, dentonLng);
+    }
+  </script>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <audio id="alertSound" src="https://cdn.uppbeat.io/audio-files/917eeef23562404c6620f249596cd4e7/82fdd510eb74db31d8192be992f35033/5032726f7339de39f729eb546e1a92ed/STREAMING-bell-digital-sparkle-swoop-1-00-01.mp3" preload="auto"></audio>
+  
+  <script>
+    // Function to enable audio playback (user must click the button)
+    document.getElementById("enableAlertsBtn").addEventListener("click", function() {
+      var sound = document.getElementById("alertSound");
+      // Attempt to play and immediately pause to satisfy autoplay restrictions.
+      sound.play().then(() => {
+        sound.pause();
+        console.log("Audio alerts enabled.");
+      }).catch((error) => {
+        console.error("Error enabling audio alerts:", error);
+      });
+    });
+    
+    // Connect to the Socket.IO server.
+    var socket = io("http://192.168.137.1:8000");
+    
+    socket.on('connect', () => {
+      console.log("PULSE: Connected to backend");
+    });
+    
+    // Listen for crisis_alert events
+    socket.on('crisis_alert', (data) => {
+      console.log("PULSE: Crisis alert received:", data);
+      var sound = document.getElementById("alertSound");
+      if (sound) {
+        sound.play().catch(error => {
+          console.error("Error playing sound:", error);
+        });
+      }
+      alert("PULSE Alert: " + data.message);
+    });
+    
+    socket.on('disconnect', () => {
+      console.log("PULSE: Disconnected from backend");
+    });
+    
+    socket.on('error', (error) => {
+      console.error("PULSE: Socket error:", error);
+    });
+  </script>
+</body>
+</html>
